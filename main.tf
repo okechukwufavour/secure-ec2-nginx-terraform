@@ -1,3 +1,7 @@
+data "aws_ssm_parameter" "al2023_ami" {
+  name = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
+}
+
 resource "aws_security_group" "web_sg" {
   name        = "web-sg"
   description = "Allow SSH from my IP and HTTP from anywhere"
@@ -25,4 +29,21 @@ resource "aws_security_group" "web_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+}
+
+resource "aws_instance" "web_server" {
+  ami                    = data.aws_ssm_parameter.al2023_ami.value
+  instance_type          = var.instance_type
+  key_name               = data.aws_key_pair.existing_key.key_name
+  vpc_security_group_ids = [aws_security_group.web_sg.id]
+
+  user_data = file("user-data.sh")
+
+  tags = {
+    Name = "secure-ec2-nginx"
+  }
+}
+
+data "aws_key_pair" "existing_key" {
+  key_name = var.key_pair_name
 }
